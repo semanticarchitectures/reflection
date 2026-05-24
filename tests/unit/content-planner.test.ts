@@ -5,7 +5,7 @@ import { MIN_FILES, MAX_FILES } from '../../src/models/types.js';
 
 describe('ContentPlanner', () => {
   describe('planContextSet', () => {
-    it('should return a ContentPlan with files and estimatedTotal', () => {
+    it('should return a ContentPlan with files and estimatedTotal', async () => {
       const scope: TopicScope = {
         originalTopic: 'TypeScript design patterns',
         originalUseCase: 'Learning common patterns for building scalable applications',
@@ -13,14 +13,14 @@ describe('ContentPlanner', () => {
         summary: 'TypeScript design patterns for scalable applications. Covers creational, structural, and behavioral patterns.',
       };
 
-      const plan = planContextSet(scope);
+      const plan = await planContextSet(scope);
 
       expect(plan).toHaveProperty('files');
       expect(plan).toHaveProperty('estimatedTotal');
       expect(plan.estimatedTotal).toBe(plan.files.length);
     });
 
-    it('should generate between MIN_FILES and MAX_FILES files', () => {
+    it('should generate between MIN_FILES and MAX_FILES files', async () => {
       const scope: TopicScope = {
         originalTopic: 'Machine learning fundamentals',
         originalUseCase: 'Understanding ML concepts for a data science role',
@@ -28,13 +28,13 @@ describe('ContentPlanner', () => {
         summary: 'Machine learning fundamentals covering supervised and unsupervised approaches. Neural networks and deep learning basics. Model evaluation and validation techniques.',
       };
 
-      const plan = planContextSet(scope);
+      const plan = await planContextSet(scope);
 
       expect(plan.files.length).toBeGreaterThanOrEqual(MIN_FILES);
       expect(plan.files.length).toBeLessThanOrEqual(MAX_FILES);
     });
 
-    it('should produce unique subtopics (no duplicates)', () => {
+    it('should produce unique subtopics (no duplicates)', async () => {
       const scope: TopicScope = {
         originalTopic: 'React hooks',
         originalUseCase: 'Building modern React applications',
@@ -42,14 +42,14 @@ describe('ContentPlanner', () => {
         summary: 'React hooks for state management and side effects. Custom hooks for reusable logic.',
       };
 
-      const plan = planContextSet(scope);
+      const plan = await planContextSet(scope);
       const subtopics = plan.files.map((f) => f.subtopic.toLowerCase().trim());
       const uniqueSubtopics = new Set(subtopics);
 
       expect(uniqueSubtopics.size).toBe(subtopics.length);
     });
 
-    it('should produce unique filenames (no duplicates)', () => {
+    it('should produce unique filenames (no duplicates)', async () => {
       const scope: TopicScope = {
         originalTopic: 'API design',
         originalUseCase: 'Designing RESTful APIs',
@@ -57,14 +57,14 @@ describe('ContentPlanner', () => {
         summary: 'API design best practices. REST principles and HTTP methods. Authentication and authorization. Error handling strategies.',
       };
 
-      const plan = planContextSet(scope);
+      const plan = await planContextSet(scope);
       const filenames = plan.files.map((f) => f.filename);
       const uniqueFilenames = new Set(filenames);
 
       expect(uniqueFilenames.size).toBe(filenames.length);
     });
 
-    it('should generate valid kebab-case filenames ending in .md', () => {
+    it('should generate valid kebab-case filenames ending in .md', async () => {
       const scope: TopicScope = {
         originalTopic: 'Cloud computing services',
         originalUseCase: 'Migrating on-premise infrastructure to the cloud',
@@ -72,7 +72,7 @@ describe('ContentPlanner', () => {
         summary: 'Cloud computing services overview. AWS and Azure comparison. Cost optimization strategies for cloud migration.',
       };
 
-      const plan = planContextSet(scope);
+      const plan = await planContextSet(scope);
       const filenamePattern = /^[a-z0-9]+(-[a-z0-9]+)*\.md$/;
 
       for (const file of plan.files) {
@@ -81,7 +81,7 @@ describe('ContentPlanner', () => {
       }
     });
 
-    it('should assign cross-reference relationships', () => {
+    it('should assign cross-reference relationships', async () => {
       const scope: TopicScope = {
         originalTopic: 'Database design',
         originalUseCase: 'Designing efficient database schemas',
@@ -89,7 +89,7 @@ describe('ContentPlanner', () => {
         summary: 'Database design principles. Normalization forms. Indexing strategies. Query optimization techniques.',
       };
 
-      const plan = planContextSet(scope);
+      const plan = await planContextSet(scope);
 
       // At least some files should have cross-references
       const filesWithRefs = plan.files.filter((f) => f.relatedFiles.length > 0);
@@ -104,7 +104,7 @@ describe('ContentPlanner', () => {
       }
     });
 
-    it('should handle minimal input and still produce at least MIN_FILES', () => {
+    it('should handle minimal input and still produce at least MIN_FILES', async () => {
       const scope: TopicScope = {
         originalTopic: 'Testing',
         originalUseCase: 'Writing better tests',
@@ -112,12 +112,12 @@ describe('ContentPlanner', () => {
         summary: 'Software testing',
       };
 
-      const plan = planContextSet(scope);
+      const plan = await planContextSet(scope);
 
       expect(plan.files.length).toBeGreaterThanOrEqual(MIN_FILES);
     });
 
-    it('should include description for each planned file', () => {
+    it('should include description for each planned file', async () => {
       const scope: TopicScope = {
         originalTopic: 'GraphQL',
         originalUseCase: 'Building a GraphQL API',
@@ -125,7 +125,7 @@ describe('ContentPlanner', () => {
         summary: 'GraphQL API development. Schema design and type system. Resolvers and data fetching. Real-time subscriptions.',
       };
 
-      const plan = planContextSet(scope);
+      const plan = await planContextSet(scope);
 
       for (const file of plan.files) {
         expect(file.description).toBeDefined();
@@ -133,7 +133,7 @@ describe('ContentPlanner', () => {
       }
     });
 
-    it('should not reference itself in relatedFiles', () => {
+    it('should not reference itself in relatedFiles', async () => {
       const scope: TopicScope = {
         originalTopic: 'Microservices architecture',
         originalUseCase: 'Breaking a monolith into microservices',
@@ -141,7 +141,7 @@ describe('ContentPlanner', () => {
         summary: 'Microservices architecture patterns. Service discovery and communication. API gateway design. Event-driven architecture. Data consistency across services.',
       };
 
-      const plan = planContextSet(scope);
+      const plan = await planContextSet(scope);
 
       for (const file of plan.files) {
         expect(file.relatedFiles).not.toContain(file.filename);

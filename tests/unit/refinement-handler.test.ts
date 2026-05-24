@@ -114,14 +114,14 @@ describe('RefinementHandler', () => {
   });
 
   describe('addFile', () => {
-    it('should generate a new file and add it to the session', () => {
+    it('should generate a new file and add it to the session', async () => {
       const files = [
         createTestFile('singleton.md', 'Singleton Pattern'),
         createTestFile('factory.md', 'Factory Pattern'),
       ];
       const session = createTestSession(files);
 
-      const result = addFile('Builder Pattern', session);
+      const result = await addFile('Builder Pattern', session);
 
       expect(result.filename).toBe('builder-pattern.md');
       expect(result.title).toBe('Builder Pattern');
@@ -129,27 +129,27 @@ describe('RefinementHandler', () => {
       expect(session.generatedFiles).toHaveLength(3);
     });
 
-    it('should include cross-references to existing files', () => {
+    it('should include cross-references to existing files', async () => {
       const files = [
         createTestFile('singleton.md', 'Singleton Pattern'),
         createTestFile('factory.md', 'Factory Pattern'),
       ];
       const session = createTestSession(files);
 
-      const result = addFile('Abstract Factory', session);
+      const result = await addFile('Abstract Factory', session);
 
       // The new file should have cross-references to existing files
       expect(result.crossReferences.length).toBeGreaterThanOrEqual(0);
     });
 
-    it('should generate a valid kebab-case filename', () => {
+    it('should generate a valid kebab-case filename', async () => {
       const files = [
         createTestFile('singleton.md', 'Singleton Pattern'),
         createTestFile('factory.md', 'Factory Pattern'),
       ];
       const session = createTestSession(files);
 
-      const result = addFile('Dependency Injection Container', session);
+      const result = await addFile('Dependency Injection Container', session);
 
       expect(result.filename).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*\.md$/);
     });

@@ -1,25 +1,70 @@
 import { PlannedFile, TopicScope, GeneratedFile, CrossReference } from '../models/interfaces.js';
+import { ProviderRegistry } from '../llm/provider-registry.js';
+
+/** Minimum character length for LLM-generated body content to be accepted. */
+const MIN_LLM_BODY_LENGTH = 200;
 
 /**
  * Generates markdown content for a single context file based on the content plan.
  *
- * Produces structured markdown with:
- * - An H1 heading identifying the subtopic
- * - Body content of at least 200 characters covering the subtopic
- * - Cross-references as relative markdown links to related files that exist in the context set
+ * When a ProviderRegistry with an active LLM provider is available, builds a prompt
+ * from the PlannedFile metadata, TopicScope, and summaries of previously generated files,
+ * then uses the LLM response as body content if it meets the minimum length threshold (≥200 chars).
+ *
+ * Falls back to heuristic generation when:
+ * - No registry is provided
+ * - No active provider is configured
+ * - The LLM response is too short (<200 chars)
+ * - The provider returns an error or times out
  *
  * @param planned - The planned file metadata (subtopic, filename, related files)
  * @param scope - The topic scope providing context for content generation
  * @param existingFiles - Already-generated files available for cross-referencing
- * @returns A GeneratedFile with filename, title, content, and cross-references
+ * @param registry - Optional provider registry for LLM-based generation
+ * @returns A GeneratedFile with filename, title, content, cross-references, and generationMethod
  */
-export function generateFile(
+export async function generateFile(
   planned: PlannedFile,
   scope: TopicScope,
-  existingFiles: GeneratedFile[]
-): GeneratedFile {
+  existingFiles: GeneratedFile[],
+  registry?: ProviderRegistry
+): Promise<GeneratedFile> {
   const title = planned.subtopic;
   const crossReferences = resolveCrossReferences(planned, existingFiles);
+
+  // Attempt LLM generation if a registry is provided
+  if (registry) {
+    try {
+      const provider = registry.getActiveProvider();
+      if (provider) {
+        const config = registry.getStageConfig('generator');
+        const messages = buildPrompt(planned, scope, existingFiles);
+
+        const response = await provider.complete({
+          messages,
+          model: config.model,
+          maxTokens: config.maxTokens,
+        });
+
+        if (response.content.length >= MIN_LLM_BODY_LENGTH) {
+          const content = formatContent(title, response.content, crossReferences);
+          return {
+            filename: planned.filename,
+            title,
+            content,
+            crossReferences,
+            generationMethod: 'llm',
+          };
+        }
+        // Response too short — fall through to heuristic
+      }
+    } catch (_error) {
+      // Provider error or timeout — fall through to heuristic
+      // Error is reported by the caller through ProgressReporter
+    }
+  }
+
+  // Heuristic fallback
   const body = generateBody(planned, scope, crossReferences);
   const content = formatContent(title, body, crossReferences);
 
@@ -28,7 +73,53 @@ export function generateFile(
     title,
     content,
     crossReferences,
+    generationMethod: 'heuristic',
   };
+}
+
+/**
+ * Builds the LLM prompt from PlannedFile metadata, TopicScope, and existing file summaries.
+ */
+function buildPrompt(
+  planned: PlannedFile,
+  scope: TopicScope,
+  existingFiles: GeneratedFile[]
+): Array<{ role: 'system' | 'user'; content: string }> {
+  const systemContent = [
+    'You are a technical content writer generating markdown documentation.',
+    'Generate detailed, informative markdown content for the specified subtopic.',
+    'The content should be well-structured with sections, explanations, and examples where appropriate.',
+    'Do NOT include an H1 heading — that will be added separately.',
+    'Do NOT include cross-reference links — those will be added separately.',
+    'Focus on producing substantive body content (at least 200 characters).',
+  ].join(' ');
+
+  const existingFileSummaries = existingFiles.map((f) => {
+    // Use first 150 chars of content as a summary
+    const summary = f.content.slice(0, 150).replace(/\n/g, ' ');
+    return `- ${f.filename} (${f.title}): ${summary}...`;
+  });
+
+  const userContent = [
+    `Topic: ${scope.originalTopic}`,
+    `Use Case: ${scope.originalUseCase}`,
+    `Summary: ${scope.summary}`,
+    scope.refinements.length > 0 ? `Refinements: ${scope.refinements.join(', ')}` : '',
+    '',
+    `Subtopic to write about: ${planned.subtopic}`,
+    `Description: ${planned.description}`,
+    '',
+    existingFileSummaries.length > 0
+      ? `Previously generated files in this context set:\n${existingFileSummaries.join('\n')}`
+      : 'This is the first file in the context set.',
+    '',
+    'Please generate comprehensive markdown body content for this subtopic.',
+  ].filter(Boolean).join('\n');
+
+  return [
+    { role: 'system' as const, content: systemContent },
+    { role: 'user' as const, content: userContent },
+  ];
 }
 
 /**

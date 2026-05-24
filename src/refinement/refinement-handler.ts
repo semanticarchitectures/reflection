@@ -72,10 +72,10 @@ export function modifyFile(
  *
  * Requirements: 6.2
  */
-export function addFile(
+export async function addFile(
   subtopic: string,
   session: GenerationSession
-): GeneratedFile {
+): Promise<GeneratedFile> {
   const filename = generateFilename(subtopic);
 
   // Determine related files from existing set
@@ -89,7 +89,7 @@ export function addFile(
   };
 
   // Generate the file using the existing FileGenerator
-  const newFile = generateFile(planned, session.scope, session.generatedFiles);
+  const newFile = await generateFile(planned, session.scope, session.generatedFiles);
 
   // Add to session
   session.generatedFiles.push(newFile);

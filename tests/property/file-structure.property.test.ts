@@ -59,10 +59,10 @@ describe('File Structure Property Tests', () => {
      * For any generated Context_Set, no two Context_Files shall have
      * the same subtopic title or filename.
      */
-    it('no two planned files share the same subtopic title', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const plan = planContextSet(scope);
+    it('no two planned files share the same subtopic title', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const plan = await planContextSet(scope);
 
           const subtopics = plan.files.map((f) => f.subtopic.toLowerCase().trim());
           const uniqueSubtopics = new Set(subtopics);
@@ -72,10 +72,10 @@ describe('File Structure Property Tests', () => {
       );
     });
 
-    it('no two planned files share the same filename', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const plan = planContextSet(scope);
+    it('no two planned files share the same filename', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const plan = await planContextSet(scope);
 
           const filenames = plan.files.map((f) => f.filename);
           const uniqueFilenames = new Set(filenames);
@@ -97,13 +97,13 @@ describe('File Structure Property Tests', () => {
      * NOTE: FileGenerator is not yet implemented. This is a placeholder test
      * that will be updated once the FileGenerator module exists.
      */
-    it('generated file content starts with H1 heading and body is ≥200 chars', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const plan = planContextSet(scope);
+    it('generated file content starts with H1 heading and body is ≥200 chars', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const plan = await planContextSet(scope);
 
           for (const planned of plan.files) {
-            const generated = generateFile(planned, scope, []);
+            const generated = await generateFile(planned, scope, []);
             const lines = generated.content.split('\n');
 
             // First line must be an H1 heading
@@ -126,10 +126,10 @@ describe('File Structure Property Tests', () => {
      * For any generated Context_Set, the number of Context_Files shall be
      * between 2 and 10 inclusive.
      */
-    it('file count is between MIN_FILES and MAX_FILES inclusive', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const plan = planContextSet(scope);
+    it('file count is between MIN_FILES and MAX_FILES inclusive', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const plan = await planContextSet(scope);
 
           expect(plan.files.length).toBeGreaterThanOrEqual(MIN_FILES);
           expect(plan.files.length).toBeLessThanOrEqual(MAX_FILES);
@@ -138,10 +138,10 @@ describe('File Structure Property Tests', () => {
       );
     });
 
-    it('estimatedTotal matches actual file count', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const plan = planContextSet(scope);
+    it('estimatedTotal matches actual file count', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const plan = await planContextSet(scope);
 
           expect(plan.estimatedTotal).toBe(plan.files.length);
         }),
@@ -190,10 +190,10 @@ describe('File Structure Property Tests', () => {
       );
     });
 
-    it('filenames from planContextSet are valid kebab-case', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const plan = planContextSet(scope);
+    it('filenames from planContextSet are valid kebab-case', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const plan = await planContextSet(scope);
           const kebabPattern = /^[a-z0-9]+(-[a-z0-9]+)*\.md$/;
 
           for (const file of plan.files) {

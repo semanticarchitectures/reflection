@@ -1,24 +1,173 @@
 import { TopicScope, ContentPlan, PlannedFile } from '../models/interfaces.js';
-import { MIN_FILES, MAX_FILES } from '../models/types.js';
+import { MIN_FILES, MAX_FILES, MAX_FILENAME_LENGTH } from '../models/types.js';
 import { generateFilename } from '../generators/filename-generator.js';
+import { ProviderRegistry } from '../llm/provider-registry.js';
+import { parseAndValidate } from '../llm/json-parser.js';
+import { CompletionMessage } from '../llm/interfaces.js';
 
 /**
  * Determines the structure of a context set — how many files, what subtopics,
  * and how they cross-reference each other.
  */
 
+/** Kebab-case filename pattern: lowercase alphanumeric segments separated by hyphens, ending in .md */
+const KEBAB_CASE_FILENAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*\.md$/;
+
+/**
+ * Type guard that validates a parsed JSON object conforms to the ContentPlan structure.
+ *
+ * Checks:
+ * - Has a `files` array with 2–10 entries
+ * - Each entry has non-empty subtopic and description
+ * - Each filename matches kebab-case pattern with .md extension, ≤60 chars
+ * - relatedFiles only reference filenames within the same plan
+ */
+function isValidContentPlan(parsed: unknown): parsed is ContentPlan {
+  if (typeof parsed !== 'object' || parsed === null) return false;
+
+  const obj = parsed as Record<string, unknown>;
+  if (!Array.isArray(obj.files)) return false;
+
+  const files = obj.files as unknown[];
+  if (files.length < MIN_FILES || files.length > MAX_FILES) return false;
+
+  // Collect all filenames first for relatedFiles validation
+  const allFilenames = new Set<string>();
+  for (const entry of files) {
+    if (typeof entry !== 'object' || entry === null) return false;
+    const file = entry as Record<string, unknown>;
+    if (typeof file.filename !== 'string') return false;
+    allFilenames.add(file.filename);
+  }
+
+  // Validate each entry
+  for (const entry of files) {
+    const file = entry as Record<string, unknown>;
+
+    // Non-empty subtopic
+    if (typeof file.subtopic !== 'string' || file.subtopic.trim().length === 0) return false;
+
+    // Non-empty description
+    if (typeof file.description !== 'string' || file.description.trim().length === 0) return false;
+
+    // Valid kebab-case filename with .md extension, ≤60 chars
+    const filename = file.filename as string;
+    if (filename.length > MAX_FILENAME_LENGTH) return false;
+    if (!KEBAB_CASE_FILENAME_PATTERN.test(filename)) return false;
+
+    // relatedFiles must be an array of strings referencing filenames within the plan
+    if (!Array.isArray(file.relatedFiles)) return false;
+    for (const ref of file.relatedFiles) {
+      if (typeof ref !== 'string') return false;
+      if (!allFilenames.has(ref)) return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Builds a structured prompt from a TopicScope requesting a content plan from the LLM.
+ */
+function buildContentPlanPrompt(scope: TopicScope): CompletionMessage[] {
+  const systemMessage: CompletionMessage = {
+    role: 'system',
+    content: `You are a content planning assistant. Given a topic scope, you produce a structured content plan as a JSON object. The plan organizes the topic into distinct subtopics, each mapped to a markdown file.
+
+Rules for the output:
+- Return ONLY a JSON object with a "files" array
+- The "files" array must contain between ${MIN_FILES} and ${MAX_FILES} entries
+- Each entry must have: "subtopic" (non-empty string), "filename" (kebab-case with .md extension, max ${MAX_FILENAME_LENGTH} chars), "description" (non-empty string), "relatedFiles" (array of filenames from this plan)
+- Filenames must match the pattern: lowercase letters, numbers, and hyphens only, ending in .md
+- Each subtopic should be distinct and cover a different aspect of the topic
+- relatedFiles should reference other filenames in the same plan that are conceptually related`,
+  };
+
+  const userMessage: CompletionMessage = {
+    role: 'user',
+    content: `Plan a context set for the following topic:
+
+Topic: ${scope.originalTopic}
+Use Case: ${scope.originalUseCase}
+Summary: ${scope.summary}
+Refinements: ${scope.refinements.length > 0 ? scope.refinements.join(', ') : 'None'}
+
+Return a JSON object with the following structure:
+{
+  "files": [
+    {
+      "subtopic": "...",
+      "filename": "...",
+      "description": "...",
+      "relatedFiles": ["..."]
+    }
+  ]
+}`,
+  };
+
+  return [systemMessage, userMessage];
+}
+
 /**
  * Plans a context set based on the refined topic scope.
  *
- * Analyzes the TopicScope to determine:
- * - How many files to generate (2–10 based on topic complexity)
- * - What subtopics to cover
- * - How files relate to each other (cross-references)
+ * If a ProviderRegistry is supplied and an active LLM provider is available,
+ * attempts to use the LLM to generate the content plan. Falls back to the
+ * heuristic implementation on any failure (parse error, validation error,
+ * timeout, provider error).
+ *
+ * When no registry is provided (or no provider is configured), uses the
+ * heuristic implementation directly.
  *
  * @param scope - The refined topic scope from the clarification phase
+ * @param registry - Optional ProviderRegistry for LLM-based planning
  * @returns A ContentPlan with planned files and estimated total
  */
-export function planContextSet(scope: TopicScope): ContentPlan {
+export async function planContextSet(scope: TopicScope, registry?: ProviderRegistry): Promise<ContentPlan> {
+  if (registry) {
+    try {
+      const provider = registry.getActiveProvider();
+      if (provider) {
+        const config = registry.getStageConfig('planner');
+        const messages = buildContentPlanPrompt(scope);
+
+        const response = await provider.complete({
+          messages,
+          model: config.model,
+          maxTokens: config.maxTokens,
+        });
+
+        const result = parseAndValidate<ContentPlan>(
+          response.content,
+          isValidContentPlan,
+          'ContentPlanner'
+        );
+
+        if (result.success && result.data) {
+          return {
+            files: result.data.files,
+            estimatedTotal: result.data.files.length,
+          };
+        }
+
+        // Validation/parse failure — fall back
+        console.warn(`[ContentPlanner] Falling back to heuristic: ${result.error}`);
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      console.warn(`[ContentPlanner] Falling back to heuristic: ${reason}`);
+    }
+  }
+
+  // Heuristic fallback (original implementation)
+  return planContextSetHeuristic(scope);
+}
+
+/**
+ * Heuristic implementation of content planning.
+ * This is the original implementation preserved as fallback.
+ */
+function planContextSetHeuristic(scope: TopicScope): ContentPlan {
   const subtopics = extractSubtopics(scope);
   const files = buildPlannedFiles(subtopics);
 

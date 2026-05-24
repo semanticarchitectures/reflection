@@ -36,12 +36,12 @@ function topicScopeArb(): fc.Arbitrary<TopicScope> {
  * Helper: generates a full context set (plan → generate files) from a TopicScope.
  * Files are generated sequentially so cross-references can resolve against earlier files.
  */
-function generateContextSet(scope: TopicScope): GeneratedFile[] {
-  const plan = planContextSet(scope);
+async function generateContextSet(scope: TopicScope): Promise<GeneratedFile[]> {
+  const plan = await planContextSet(scope);
   const generatedFiles: GeneratedFile[] = [];
 
   for (const planned of plan.files) {
-    const file = generateFile(planned, scope, generatedFiles);
+    const file = await generateFile(planned, scope, generatedFiles);
     generatedFiles.push(file);
   }
 
@@ -58,10 +58,10 @@ describe('Context Set Invariants Property Tests', () => {
      * Context_File in the set, where each entry includes a relative markdown link
      * to the file and a one-to-two sentence description.
      */
-    it('index contains exactly one entry per generated file', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const files = generateContextSet(scope);
+    it('index contains exactly one entry per generated file', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const files = await generateContextSet(scope);
           const index = buildIndex(files);
           const indexLines = index.split('\n').filter((line) => line.startsWith('- ['));
 
@@ -72,10 +72,10 @@ describe('Context Set Invariants Property Tests', () => {
       );
     });
 
-    it('each index entry contains the correct relative link format [title](./{filename})', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const files = generateContextSet(scope);
+    it('each index entry contains the correct relative link format [title](./{filename})', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const files = await generateContextSet(scope);
           const index = buildIndex(files);
           const indexLines = index.split('\n').filter((line) => line.startsWith('- ['));
 
@@ -89,10 +89,10 @@ describe('Context Set Invariants Property Tests', () => {
       );
     });
 
-    it('each index entry includes a non-empty description after the em dash', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const files = generateContextSet(scope);
+    it('each index entry includes a non-empty description after the em dash', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const files = await generateContextSet(scope);
           const index = buildIndex(files);
           const indexLines = index.split('\n').filter((line) => line.startsWith('- ['));
 
@@ -108,10 +108,10 @@ describe('Context Set Invariants Property Tests', () => {
       );
     });
 
-    it('no file appears more than once in the index', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const files = generateContextSet(scope);
+    it('no file appears more than once in the index', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const files = await generateContextSet(scope);
           const index = buildIndex(files);
           const indexLines = index.split('\n').filter((line) => line.startsWith('- ['));
 
@@ -141,10 +141,10 @@ describe('Context Set Invariants Property Tests', () => {
      * within any Context_File shall point to a file that exists in the Context_Set.
      * No broken links shall exist.
      */
-    it('every relative link in generated files points to an existing file in the set', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const files = generateContextSet(scope);
+    it('every relative link in generated files points to an existing file in the set', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const files = await generateContextSet(scope);
           const filenames = new Set(files.map((f) => f.filename));
 
           // Extract all relative markdown links from all files
@@ -164,10 +164,10 @@ describe('Context Set Invariants Property Tests', () => {
       );
     });
 
-    it('cross-references in GeneratedFile metadata only reference existing files', () => {
-      fc.assert(
-        fc.property(topicScopeArb(), (scope) => {
-          const files = generateContextSet(scope);
+    it('cross-references in GeneratedFile metadata only reference existing files', async () => {
+      await fc.assert(
+        fc.asyncProperty(topicScopeArb(), async (scope) => {
+          const files = await generateContextSet(scope);
           const filenames = new Set(files.map((f) => f.filename));
 
           for (const file of files) {

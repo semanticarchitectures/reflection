@@ -46,6 +46,8 @@ export interface GeneratedFile {
   title: string;
   content: string;
   crossReferences: CrossReference[];
+  /** Indicates whether this file was generated via LLM or heuristic fallback. */
+  generationMethod?: 'llm' | 'heuristic';
 }
 
 /** A cross-reference link to another file in the context set. */

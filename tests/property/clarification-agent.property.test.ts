@@ -59,15 +59,15 @@ describe('ClarificationAgent Property Tests', () => {
    * **Validates: Requirements 2.1**
    */
   describe('Property 4: Clarification question count bounds', () => {
-    it('generates between 1 and 5 total questions for any valid input', () => {
-      fc.assert(
-        fc.property(validTopicArb, validUseCaseArb, (topic, useCase) => {
+    it('generates between 1 and 5 total questions for any valid input', async () => {
+      await fc.assert(
+        fc.asyncProperty(validTopicArb, validUseCaseArb, async (topic, useCase) => {
           const agent = new ClarificationAgent(topic, useCase);
           let totalQuestions = 0;
 
           // Collect all questions across all rounds
           while (!agent.isComplete()) {
-            const batch = agent.generateQuestions();
+            const batch = await agent.generateQuestions();
             if (batch.length === 0) break;
             totalQuestions += batch.length;
 
@@ -93,13 +93,13 @@ describe('ClarificationAgent Property Tests', () => {
    * **Validates: Requirements 2.2**
    */
   describe('Property 5: Clarification question batch size', () => {
-    it('each batch contains at most 3 questions', () => {
-      fc.assert(
-        fc.property(validTopicArb, validUseCaseArb, (topic, useCase) => {
+    it('each batch contains at most 3 questions', async () => {
+      await fc.assert(
+        fc.asyncProperty(validTopicArb, validUseCaseArb, async (topic, useCase) => {
           const agent = new ClarificationAgent(topic, useCase);
 
           while (!agent.isComplete()) {
-            const batch = agent.generateQuestions();
+            const batch = await agent.generateQuestions();
             if (batch.length === 0) break;
 
             expect(batch.length).toBeLessThanOrEqual(3);
@@ -124,13 +124,13 @@ describe('ClarificationAgent Property Tests', () => {
    * **Validates: Requirements 2.3**
    */
   describe('Property 6: Topic scope preserves original input', () => {
-    it('resulting scope contains original topic and use case unchanged', () => {
-      fc.assert(
-        fc.property(validTopicArb, validUseCaseArb, (topic, useCase) => {
+    it('resulting scope contains original topic and use case unchanged', async () => {
+      await fc.assert(
+        fc.asyncProperty(validTopicArb, validUseCaseArb, async (topic, useCase) => {
           const agent = new ClarificationAgent(topic, useCase);
 
           // Run through at least one round of questions
-          const questions = agent.generateQuestions();
+          const questions = await agent.generateQuestions();
           const answers = new Map<string, string>();
           for (const q of questions) {
             answers.set(q.id, 'Some clarification answer');
@@ -157,19 +157,19 @@ describe('ClarificationAgent Property Tests', () => {
    * **Validates: Requirements 2.4**
    */
   describe('Property 7: Clarification session terminates', () => {
-    it('session completes after at most 3 rounds or when all questions answered', () => {
-      fc.assert(
-        fc.property(
+    it('session completes after at most 3 rounds or when all questions answered', async () => {
+      await fc.assert(
+        fc.asyncProperty(
           validTopicArb,
           validUseCaseArb,
           // Random strategy: answer all, answer none, or answer randomly
           fc.constantFrom('answer-all', 'answer-none', 'answer-random'),
-          (topic, useCase, strategy) => {
+          async (topic, useCase, strategy) => {
             const agent = new ClarificationAgent(topic, useCase);
             let rounds = 0;
 
             while (!agent.isComplete()) {
-              const batch = agent.generateQuestions();
+              const batch = await agent.generateQuestions();
               if (batch.length === 0) break;
               rounds++;
 

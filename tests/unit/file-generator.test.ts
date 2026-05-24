@@ -18,22 +18,22 @@ describe('FileGenerator', () => {
   };
 
   describe('generateFile', () => {
-    it('should return a GeneratedFile with correct filename and title', () => {
-      const result = generateFile(basePlannedFile, baseScope, []);
+    it('should return a GeneratedFile with correct filename and title', async () => {
+      const result = await generateFile(basePlannedFile, baseScope, []);
 
       expect(result.filename).toBe('neural-networks.md');
       expect(result.title).toBe('Neural Networks');
     });
 
-    it('should produce content starting with an H1 heading', () => {
-      const result = generateFile(basePlannedFile, baseScope, []);
+    it('should produce content starting with an H1 heading', async () => {
+      const result = await generateFile(basePlannedFile, baseScope, []);
 
       const firstLine = result.content.split('\n')[0];
       expect(firstLine).toBe('# Neural Networks');
     });
 
-    it('should produce body content of at least 200 characters', () => {
-      const result = generateFile(basePlannedFile, baseScope, []);
+    it('should produce body content of at least 200 characters', async () => {
+      const result = await generateFile(basePlannedFile, baseScope, []);
 
       // Body is everything after the H1 heading line and the blank line
       const lines = result.content.split('\n');
@@ -41,7 +41,7 @@ describe('FileGenerator', () => {
       expect(bodyContent.length).toBeGreaterThanOrEqual(200);
     });
 
-    it('should include cross-references only for files that exist', () => {
+    it('should include cross-references only for files that exist', async () => {
       const existingFiles: GeneratedFile[] = [
         {
           filename: 'deep-learning.md',
@@ -51,7 +51,7 @@ describe('FileGenerator', () => {
         },
       ];
 
-      const result = generateFile(basePlannedFile, baseScope, existingFiles);
+      const result = await generateFile(basePlannedFile, baseScope, existingFiles);
 
       // Should include deep-learning.md (exists) but not optimization.md (doesn't exist)
       expect(result.crossReferences).toHaveLength(1);
@@ -59,13 +59,13 @@ describe('FileGenerator', () => {
       expect(result.crossReferences[0]!.anchorText).toBe('Related: Deep Learning');
     });
 
-    it('should omit cross-references when no related files exist', () => {
-      const result = generateFile(basePlannedFile, baseScope, []);
+    it('should omit cross-references when no related files exist', async () => {
+      const result = await generateFile(basePlannedFile, baseScope, []);
 
       expect(result.crossReferences).toHaveLength(0);
     });
 
-    it('should format cross-references as relative markdown links', () => {
+    it('should format cross-references as relative markdown links', async () => {
       const existingFiles: GeneratedFile[] = [
         {
           filename: 'deep-learning.md',
@@ -75,19 +75,19 @@ describe('FileGenerator', () => {
         },
       ];
 
-      const result = generateFile(basePlannedFile, baseScope, existingFiles);
+      const result = await generateFile(basePlannedFile, baseScope, existingFiles);
 
       expect(result.content).toContain('[Related: Deep Learning](./deep-learning.md)');
     });
 
-    it('should not include cross-reference links for non-existent files', () => {
-      const result = generateFile(basePlannedFile, baseScope, []);
+    it('should not include cross-reference links for non-existent files', async () => {
+      const result = await generateFile(basePlannedFile, baseScope, []);
 
       // optimization.md is in relatedFiles but doesn't exist
       expect(result.content).not.toContain('optimization.md');
     });
 
-    it('should include multiple cross-references when multiple related files exist', () => {
+    it('should include multiple cross-references when multiple related files exist', async () => {
       const existingFiles: GeneratedFile[] = [
         {
           filename: 'deep-learning.md',
@@ -103,14 +103,14 @@ describe('FileGenerator', () => {
         },
       ];
 
-      const result = generateFile(basePlannedFile, baseScope, existingFiles);
+      const result = await generateFile(basePlannedFile, baseScope, existingFiles);
 
       expect(result.crossReferences).toHaveLength(2);
       expect(result.content).toContain('[Related: Deep Learning](./deep-learning.md)');
       expect(result.content).toContain('[Related: Optimization](./optimization.md)');
     });
 
-    it('should handle a planned file with no related files', () => {
+    it('should handle a planned file with no related files', async () => {
       const isolated: PlannedFile = {
         subtopic: 'Standalone Topic',
         filename: 'standalone-topic.md',
@@ -118,13 +118,13 @@ describe('FileGenerator', () => {
         relatedFiles: [],
       };
 
-      const result = generateFile(isolated, baseScope, []);
+      const result = await generateFile(isolated, baseScope, []);
 
       expect(result.crossReferences).toHaveLength(0);
       expect(result.content).not.toContain('## See Also');
     });
 
-    it('should include a See Also section when cross-references exist', () => {
+    it('should include a See Also section when cross-references exist', async () => {
       const existingFiles: GeneratedFile[] = [
         {
           filename: 'deep-learning.md',
@@ -134,13 +134,13 @@ describe('FileGenerator', () => {
         },
       ];
 
-      const result = generateFile(basePlannedFile, baseScope, existingFiles);
+      const result = await generateFile(basePlannedFile, baseScope, existingFiles);
 
       expect(result.content).toContain('## See Also');
     });
 
-    it('should generate valid markdown content', () => {
-      const result = generateFile(basePlannedFile, baseScope, []);
+    it('should generate valid markdown content', async () => {
+      const result = await generateFile(basePlannedFile, baseScope, []);
 
       // Should contain section headings
       expect(result.content).toContain('## Introduction');
@@ -148,14 +148,14 @@ describe('FileGenerator', () => {
       expect(result.content).toContain('## Relationships');
     });
 
-    it('should incorporate the topic scope into the content', () => {
-      const result = generateFile(basePlannedFile, baseScope, []);
+    it('should incorporate the topic scope into the content', async () => {
+      const result = await generateFile(basePlannedFile, baseScope, []);
 
       expect(result.content).toContain('Machine Learning');
       expect(result.content).toContain('building a recommendation system');
     });
 
-    it('should work with an empty refinements array', () => {
+    it('should work with an empty refinements array', async () => {
       const scopeNoRefinements: TopicScope = {
         originalTopic: 'Testing',
         originalUseCase: 'writing unit tests',
@@ -170,7 +170,7 @@ describe('FileGenerator', () => {
         relatedFiles: [],
       };
 
-      const result = generateFile(planned, scopeNoRefinements, []);
+      const result = await generateFile(planned, scopeNoRefinements, []);
 
       expect(result.filename).toBe('test-strategies.md');
       expect(result.title).toBe('Test Strategies');
@@ -178,6 +178,12 @@ describe('FileGenerator', () => {
 
       const bodyContent = result.content.split('\n').slice(2).join('\n');
       expect(bodyContent.length).toBeGreaterThanOrEqual(200);
+    });
+
+    it('should set generationMethod to heuristic when no registry is provided', async () => {
+      const result = await generateFile(basePlannedFile, baseScope, []);
+
+      expect(result.generationMethod).toBe('heuristic');
     });
   });
 });

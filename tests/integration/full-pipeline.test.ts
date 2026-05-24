@@ -170,7 +170,7 @@ describe('Integration: Full Pipeline', () => {
       };
 
       const originalCount = session.generatedFiles.length;
-      const newFile = addFile('Network Partitioning Strategies', session);
+      const newFile = await addFile('Network Partitioning Strategies', session);
 
       expect(newFile.filename).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*\.md$/);
       expect(newFile.content).toContain('# Network Partitioning Strategies');
@@ -193,7 +193,7 @@ describe('Integration: Full Pipeline', () => {
 
       // Ensure we have more than the minimum so removal is allowed
       if (session.generatedFiles.length <= 2) {
-        addFile('Extra Topic For Removal Test', session);
+        await addFile('Extra Topic For Removal Test', session);
       }
 
       const fileToRemove = session.generatedFiles[0]!;
@@ -224,7 +224,7 @@ describe('Integration: Full Pipeline', () => {
       };
 
       // Add a file
-      const newFile = addFile('CAP Theorem Deep Dive', session);
+      const newFile = await addFile('CAP Theorem Deep Dive', session);
 
       // Rebuild index
       const newIndex = buildIndex(session.generatedFiles);

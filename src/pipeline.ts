@@ -24,6 +24,8 @@ import { writeContextSet } from './writers/output-writer.js';
 import { ProgressReporter } from './reporters/progress-reporter.js';
 import { ClarificationQuestion, TopicScope } from './models/interfaces.js';
 import { GenerationSession } from './session.js';
+import { ProviderRegistry } from './llm/provider-registry.js';
+import { AnthropicProvider } from './llm/anthropic-provider.js';
 
 /**
  * Callback type for user interaction during clarification.
@@ -87,6 +89,9 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRes
 
   const session = new GenerationSession(topic, useCase, outputDir);
 
+  // Initialize LLM provider registry
+  const registry = initializeProviderRegistry();
+
   // Stage 1: Validate inputs
   const validationError = validateInputs(session);
   if (validationError) {
@@ -108,7 +113,8 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRes
     const scope = await runClarification(
       session,
       skipClarification,
-      clarificationCallback
+      clarificationCallback,
+      registry
     );
     session.setScope(scope);
   } catch (error) {
@@ -120,7 +126,7 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRes
 
   // Stage 3: Plan content
   try {
-    const plan = planContextSet(session.scope!);
+    const plan = await planContextSet(session.scope!, registry);
     session.setPlan(plan);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -137,10 +143,11 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRes
   let completedCount = 0;
   for (const plannedFile of plan.files) {
     try {
-      const generated = generateFile(
+      const generated = await generateFile(
         plannedFile,
         session.scope!,
-        session.generatedFiles
+        session.generatedFiles,
+        registry
       );
       session.addGeneratedFile(generated);
       completedCount++;
@@ -241,7 +248,8 @@ function validateInputs(session: GenerationSession): string | null {
 async function runClarification(
   session: GenerationSession,
   skipClarification: boolean,
-  clarificationCallback?: ClarificationCallback
+  clarificationCallback?: ClarificationCallback,
+  registry?: ProviderRegistry
 ): Promise<TopicScope> {
   if (skipClarification) {
     return {
@@ -254,13 +262,14 @@ async function runClarification(
 
   const agent = new ClarificationAgent(
     session.topicDescription,
-    session.useCaseDescription
+    session.useCaseDescription,
+    registry
   );
 
   if (clarificationCallback) {
     // Interactive clarification loop
     while (!agent.isComplete()) {
-      const questions = agent.generateQuestions();
+      const questions = await agent.generateQuestions();
       if (questions.length === 0) {
         break;
       }
@@ -282,6 +291,32 @@ function buildFallbackIndex(session: GenerationSession): string {
     lines.push(`- [${file.title}](./${file.filename})`);
   }
   return lines.join('\n');
+}
+
+/**
+ * Initializes the ProviderRegistry and registers available providers.
+ *
+ * If `LLM_PROVIDER` is set to "anthropic", attempts to construct and register
+ * the AnthropicProvider. If construction fails (e.g., missing API key), logs a
+ * warning and returns an empty registry (no-provider mode = heuristic fallback).
+ *
+ * @returns A ProviderRegistry instance, possibly with no providers registered.
+ */
+function initializeProviderRegistry(): ProviderRegistry {
+  const registry = new ProviderRegistry();
+
+  const providerName = process.env.LLM_PROVIDER?.trim();
+  if (providerName === 'anthropic') {
+    try {
+      const provider = new AnthropicProvider();
+      registry.register(provider);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[pipeline] Failed to initialize Anthropic provider: ${message}. Falling back to heuristic mode.`);
+    }
+  }
+
+  return registry;
 }
 
 /**

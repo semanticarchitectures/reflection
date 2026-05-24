@@ -3,9 +3,17 @@
  *
  * Analyzes a topic and use case to generate targeted clarification questions,
  * processes user answers, and produces a refined TopicScope.
+ *
+ * When a ProviderRegistry is supplied and an active LLM provider is configured,
+ * the agent attempts to generate questions via the LLM. On any failure (parse
+ * error, validation error, provider error), it falls back to the heuristic
+ * question pool. When no registry or provider is configured, the heuristic
+ * path is used silently without logging.
  */
 
-import { ClarificationQuestion, TopicScope } from '../models/interfaces';
+import { ClarificationQuestion, TopicScope } from '../models/interfaces.js';
+import { ProviderRegistry } from '../llm/provider-registry.js';
+import { parseAndValidate } from '../llm/json-parser.js';
 
 /** Heuristic indicators that a topic is broad or underspecified. */
 interface BroadnessIndicator {
@@ -23,7 +31,7 @@ const MAX_TOTAL_QUESTIONS = 5;
  * Usage:
  *   const agent = new ClarificationAgent(topic, useCase);
  *   while (!agent.isComplete()) {
- *     const questions = agent.generateQuestions();
+ *     const questions = await agent.generateQuestions();
  *     const answers = await getUserAnswers(questions);
  *     agent.submitAnswers(answers);
  *   }
@@ -32,6 +40,7 @@ const MAX_TOTAL_QUESTIONS = 5;
 export class ClarificationAgent {
   private readonly topic: string;
   private readonly useCase: string;
+  private readonly registry: ProviderRegistry | undefined;
   private currentRound: number = 0;
   private questionsAsked: ClarificationQuestion[] = [];
   private answersReceived: Map<string, string> = new Map();
@@ -39,9 +48,10 @@ export class ClarificationAgent {
   private questionPool: ClarificationQuestion[] = [];
   private poolInitialized: boolean = false;
 
-  constructor(topic: string, useCase: string) {
+  constructor(topic: string, useCase: string, registry?: ProviderRegistry) {
     this.topic = topic;
     this.useCase = useCase;
+    this.registry = registry;
   }
 
   /**
@@ -49,15 +59,18 @@ export class ClarificationAgent {
    * Analyzes the topic and use case to produce questions targeting
    * broad or underspecified areas.
    *
+   * If a provider is available and the pool has not been initialized,
+   * attempts the LLM path first. Falls back to heuristic on any failure.
+   *
    * Returns 1–3 questions per call, up to 5 total across all rounds.
    */
-  generateQuestions(): ClarificationQuestion[] {
+  async generateQuestions(): Promise<ClarificationQuestion[]> {
     if (this.isComplete()) {
       return [];
     }
 
     if (!this.poolInitialized) {
-      this.questionPool = this.buildQuestionPool();
+      this.questionPool = await this.initializeQuestionPool();
       this.poolInitialized = true;
     }
 
@@ -164,6 +177,99 @@ export class ClarificationAgent {
   /** Get all answers received so far. */
   getAnswersReceived(): Map<string, string> {
     return new Map(this.answersReceived);
+  }
+
+  /**
+   * Initialize the question pool, attempting LLM generation first if a provider
+   * is available, falling back to heuristic on any failure.
+   */
+  private async initializeQuestionPool(): Promise<ClarificationQuestion[]> {
+    if (this.registry) {
+      try {
+        const provider = this.registry.getActiveProvider();
+        if (provider) {
+          const config = this.registry.getStageConfig('clarifier');
+          const messages = this.buildLLMPrompt();
+
+          const response = await provider.complete({
+            messages,
+            model: config.model,
+            maxTokens: config.maxTokens,
+          });
+
+          const questions = this.parseLLMResponse(response.content);
+          if (questions !== null) {
+            return questions;
+          }
+          // Validation failed, fall through to heuristic
+          console.error(
+            '[ClarificationAgent] LLM response validation failed, falling back to heuristic'
+          );
+          return this.buildQuestionPool();
+        }
+      } catch (error) {
+        // Provider failure — log and fall back to heuristic
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(
+          `[ClarificationAgent] LLM provider error: ${message}, falling back to heuristic`
+        );
+        return this.buildQuestionPool();
+      }
+    }
+
+    // No registry or no active provider — silent heuristic mode
+    return this.buildQuestionPool();
+  }
+
+  /**
+   * Build the LLM prompt requesting clarification questions.
+   */
+  private buildLLMPrompt(): Array<{ role: 'system' | 'user'; content: string }> {
+    return [
+      {
+        role: 'system' as const,
+        content:
+          'You are an expert at analyzing topics and generating targeted clarification questions. ' +
+          'Your task is to produce questions that help narrow down broad or underspecified topics. ' +
+          'Respond with ONLY a JSON array of question objects. Each object must have exactly three fields: ' +
+          '"id" (a unique non-empty string identifier), "text" (the question text, non-empty), and ' +
+          '"purpose" (a brief explanation of why this question helps, non-empty). ' +
+          'Generate between 1 and 5 questions. Do not include any other text outside the JSON array.',
+      },
+      {
+        role: 'user' as const,
+        content:
+          `Generate clarification questions for the following:\n\n` +
+          `Topic: ${this.topic}\n` +
+          `Use Case: ${this.useCase}\n\n` +
+          `Produce 1–5 targeted questions as a JSON array of objects with "id", "text", and "purpose" fields.`,
+      },
+    ];
+  }
+
+  /**
+   * Parse and validate the LLM response as an array of ClarificationQuestion objects.
+   * Returns the validated questions array, or null if parsing/validation fails.
+   */
+  private parseLLMResponse(content: string): ClarificationQuestion[] | null {
+    const result = parseAndValidate<ClarificationQuestion[]>(
+      content,
+      isClarificationQuestionArray,
+      'ClarificationAgent'
+    );
+
+    if (!result.success || !result.data) {
+      return null;
+    }
+
+    const questions = result.data;
+
+    // Validate count: must be 1–5 entries
+    if (questions.length < 1 || questions.length > 5) {
+      return null;
+    }
+
+    return questions;
   }
 
   /**
@@ -304,4 +410,34 @@ export class ClarificationAgent {
 
     return parts.join('. ');
   }
+}
+
+/**
+ * Type guard for validating a parsed JSON value as an array of ClarificationQuestion objects.
+ * Each entry must have non-empty id, text, and purpose string fields.
+ */
+function isClarificationQuestionArray(parsed: unknown): parsed is ClarificationQuestion[] {
+  if (!Array.isArray(parsed)) {
+    return false;
+  }
+
+  for (const item of parsed) {
+    if (typeof item !== 'object' || item === null) {
+      return false;
+    }
+
+    const obj = item as Record<string, unknown>;
+
+    if (typeof obj.id !== 'string' || obj.id.trim().length === 0) {
+      return false;
+    }
+    if (typeof obj.text !== 'string' || obj.text.trim().length === 0) {
+      return false;
+    }
+    if (typeof obj.purpose !== 'string' || obj.purpose.trim().length === 0) {
+      return false;
+    }
+  }
+
+  return true;
 }

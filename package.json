@@ -6,6 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "start": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit",
@@ -22,7 +23,11 @@
   "devDependencies": {
     "@types/node": "^25.9.1",
     "fast-check": "^3.22.0",
+    "tsx": "^4.22.3",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0"
   }
 }
