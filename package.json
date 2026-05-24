@@ -1,0 +1,28 @@
+{
+  "name": "context-generation",
+  "version": "0.1.0",
+  "description": "A CLI/agent-driven tool that generates structured markdown context files for a given topic and use case",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:property": "vitest run tests/property",
+    "test:integration": "vitest run tests/integration"
+  },
+  "keywords": [
+    "context",
+    "generation",
+    "markdown",
+    "agent"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "fast-check": "^3.22.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}
