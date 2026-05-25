@@ -131,7 +131,7 @@ describe('ProviderRegistry', () => {
   describe('getStageConfig() - model resolution', () => {
     it('should use hardcoded default when no env vars are set', () => {
       const config = registry.getStageConfig('planner');
-      expect(config.model).toBe('claude-sonnet-4-20250514');
+      expect(config.model).toBe('claude-sonnet-4-6');
     });
 
     it('should use LLM_MODEL_DEFAULT when stage-specific is not set', () => {
@@ -176,13 +176,13 @@ describe('ProviderRegistry', () => {
     it('should fall through to hardcoded default when LLM_MODEL_DEFAULT is empty', () => {
       process.env.LLM_MODEL_DEFAULT = '';
       const config = registry.getStageConfig('planner');
-      expect(config.model).toBe('claude-sonnet-4-20250514');
+      expect(config.model).toBe('claude-sonnet-4-6');
     });
 
     it('should fall through to hardcoded default when LLM_MODEL_DEFAULT is whitespace', () => {
       process.env.LLM_MODEL_DEFAULT = '   ';
       const config = registry.getStageConfig('generator');
-      expect(config.model).toBe('claude-sonnet-4-20250514');
+      expect(config.model).toBe('claude-sonnet-4-6');
     });
 
     it('should allow different models for different stages', () => {
@@ -297,7 +297,7 @@ describe('ProviderRegistry', () => {
 
     it('should use defaults for both when nothing is configured', () => {
       const config = registry.getStageConfig('generator');
-      expect(config.model).toBe('claude-sonnet-4-20250514');
+      expect(config.model).toBe('claude-sonnet-4-6');
       expect(config.maxTokens).toBe(4096);
     });
 

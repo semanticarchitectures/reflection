@@ -25,7 +25,7 @@ export interface StageConfig {
 }
 
 /** Default model when no environment variable is configured. */
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+const DEFAULT_MODEL = 'claude-sonnet-4-6';
 
 /** Default maxTokens when no valid environment variable is configured. */
 const DEFAULT_MAX_TOKENS = 4096;
@@ -99,7 +99,7 @@ export class ProviderRegistry {
    * Model resolution order:
    * 1. Stage-specific env var (e.g., `LLM_MODEL_PLANNER`)
    * 2. `LLM_MODEL_DEFAULT`
-   * 3. Hardcoded fallback: "claude-sonnet-4-20250514"
+   * 3. Hardcoded fallback: "claude-sonnet-4-6"
    *
    * MaxTokens resolution order:
    * 1. Stage-specific env var (e.g., `LLM_MAX_TOKENS_PLANNER`) — must be a valid integer in [1, 128000]

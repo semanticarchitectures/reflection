@@ -135,7 +135,7 @@ async function main(): Promise<void> {
   const llmProvider = process.env.LLM_PROVIDER?.trim();
   if (llmProvider) {
     const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-    const model = process.env.LLM_MODEL_DEFAULT?.trim() || 'claude-sonnet-4-20250514';
+    const model = process.env.LLM_MODEL_DEFAULT?.trim() || 'claude-sonnet-4-6';
     console.log(`LLM Provider: ${llmProvider}`);
     console.log(`LLM Model: ${model}`);
     console.log(`API Key: ${apiKey ? apiKey.slice(0, 10) + '...' + apiKey.slice(-4) : '(not set)'}`);

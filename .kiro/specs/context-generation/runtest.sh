@@ -9,4 +9,4 @@ if [ -z "$ANTHROPIC_API_KEY" ]; then
 fi
 
 # Run
-npm start -- -t "Modeling mobile ad hoc networks" -u "Context for a coding assistant" -o ./output --skip-clarify
+npm start -- -t "Modeling mobile ad hoc networks" -u "Context for a coding assistant" -o ./output/test3

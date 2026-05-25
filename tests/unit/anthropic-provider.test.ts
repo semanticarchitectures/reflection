@@ -92,7 +92,7 @@ describe('AnthropicProvider', () => {
           { role: 'system', content: 'You are helpful.' },
           { role: 'user', content: 'Hello' },
         ],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await provider.complete(request);
@@ -116,7 +116,7 @@ describe('AnthropicProvider', () => {
           { role: 'system', content: 'Second instruction.' },
           { role: 'user', content: 'Hello' },
         ],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await provider.complete(request);
@@ -140,7 +140,7 @@ describe('AnthropicProvider', () => {
           { role: 'assistant', content: 'First assistant' },
           { role: 'user', content: 'Second user' },
         ],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await provider.complete(request);
@@ -163,7 +163,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await provider.complete(request);
@@ -181,7 +181,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await provider.complete(request);
@@ -198,7 +198,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         maxTokens: 1024,
       };
 
@@ -216,7 +216,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         temperature: 0.7,
       };
 
@@ -234,7 +234,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await provider.complete(request);
@@ -250,7 +250,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         stopSequences: ['END', 'STOP'],
       };
 
@@ -268,7 +268,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await provider.complete(request);
@@ -301,7 +301,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await expect(provider.complete(request)).rejects.toThrow(
@@ -327,7 +327,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         maxTokens: 0,
       };
 
@@ -341,7 +341,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         maxTokens: 128001,
       };
 
@@ -355,7 +355,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         maxTokens: 1024.5,
       };
 
@@ -371,7 +371,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         maxTokens: 1,
       };
 
@@ -389,7 +389,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         maxTokens: 128000,
       };
 
@@ -412,7 +412,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       const response = await provider.complete(request);
@@ -426,7 +426,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       const response = await provider.complete(request);
@@ -447,7 +447,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       const response = await provider.complete(request);
@@ -465,7 +465,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await expect(provider.complete(request)).rejects.toThrow(
@@ -482,7 +482,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await expect(provider.complete(request)).rejects.toThrow(
@@ -499,7 +499,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await expect(provider.complete(request)).rejects.toThrow(
@@ -514,7 +514,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       await expect(provider.complete(request)).rejects.toThrow('LLM request failed');
@@ -528,7 +528,7 @@ describe('AnthropicProvider', () => {
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
       };
 
       try {

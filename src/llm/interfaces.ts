@@ -30,7 +30,7 @@ export interface CompletionMessage {
 export interface CompletionRequest {
   /** Ordered array of messages forming the conversation. Must contain at least one message. */
   messages: CompletionMessage[];
-  /** The model identifier to use for generation (e.g., "claude-sonnet-4-20250514"). */
+  /** The model identifier to use for generation (e.g., "claude-sonnet-4-6"). */
   model: string;
   /** Maximum number of tokens to generate. Valid range: 1–128000. Defaults to 4096. */
   maxTokens?: number;
