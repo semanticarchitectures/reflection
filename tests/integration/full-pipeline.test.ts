@@ -82,12 +82,14 @@ describe('Integration: Full Pipeline', () => {
       expect(result.session.generatedFiles.length).toBeGreaterThanOrEqual(2);
 
       for (const file of result.session.generatedFiles) {
-        // File starts with H1 heading
-        expect(file.content.startsWith('# ')).toBe(true);
+        // File starts with frontmatter and contains H1 heading
+        expect(file.content.startsWith('---\n')).toBe(true);
+        expect(file.content).toContain('\n# ');
 
         // Extract body (everything after the H1 heading line)
         const lines = file.content.split('\n');
-        const bodyLines = lines.slice(1);
+        const headingIndex = lines.findIndex(l => l.startsWith('# '));
+        const bodyLines = lines.slice(headingIndex + 2);
         const body = bodyLines.join('\n').trim();
 
         // Body is at least 200 characters
@@ -345,7 +347,7 @@ describe('Integration: Full Pipeline', () => {
         expect(diskContent.length).toBeGreaterThan(0);
 
         // Should start with markdown H1
-        expect(diskContent.startsWith('# ')).toBe(true);
+        expect(diskContent.startsWith('---\n')).toBe(true);
       }
     });
 

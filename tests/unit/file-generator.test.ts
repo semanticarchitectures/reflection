@@ -25,11 +25,11 @@ describe('FileGenerator', () => {
       expect(result.title).toBe('Neural Networks');
     });
 
-    it('should produce content starting with an H1 heading', async () => {
+    it('should produce content with frontmatter and H1 heading', async () => {
       const result = await generateFile(basePlannedFile, baseScope, []);
 
-      const firstLine = result.content.split('\n')[0];
-      expect(firstLine).toBe('# Neural Networks');
+      expect(result.content.startsWith('---\n')).toBe(true);
+      expect(result.content).toContain('\n# Neural Networks\n');
     });
 
     it('should produce body content of at least 200 characters', async () => {
@@ -174,7 +174,8 @@ describe('FileGenerator', () => {
 
       expect(result.filename).toBe('test-strategies.md');
       expect(result.title).toBe('Test Strategies');
-      expect(result.content.startsWith('# Test Strategies')).toBe(true);
+      expect(result.content.startsWith('---\n')).toBe(true);
+      expect(result.content).toContain('\n# Test Strategies\n');
 
       const bodyContent = result.content.split('\n').slice(2).join('\n');
       expect(bodyContent.length).toBeGreaterThanOrEqual(200);

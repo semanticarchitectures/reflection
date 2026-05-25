@@ -97,20 +97,27 @@ describe('File Structure Property Tests', () => {
      * NOTE: FileGenerator is not yet implemented. This is a placeholder test
      * that will be updated once the FileGenerator module exists.
      */
-    it('generated file content starts with H1 heading and body is ≥200 chars', async () => {
+    it('generated file content has frontmatter, H1 heading, and body ≥200 chars', async () => {
       await fc.assert(
         fc.asyncProperty(topicScopeArb(), async (scope) => {
           const plan = await planContextSet(scope);
 
           for (const planned of plan.files) {
             const generated = await generateFile(planned, scope, []);
-            const lines = generated.content.split('\n');
 
-            // First line must be an H1 heading
-            expect(lines[0]).toMatch(/^# .+/);
+            // Content must start with YAML frontmatter
+            expect(generated.content.startsWith('---\n')).toBe(true);
+
+            // Content must contain an H1 heading
+            expect(generated.content).toContain('\n# ');
+
+            // Find the H1 heading line and check body after it
+            const lines = generated.content.split('\n');
+            const headingIndex = lines.findIndex(l => l.startsWith('# '));
+            expect(headingIndex).toBeGreaterThan(0);
 
             // Body content (everything after heading + blank line) must be ≥200 chars
-            const bodyContent = lines.slice(2).join('\n');
+            const bodyContent = lines.slice(headingIndex + 2).join('\n');
             expect(bodyContent.length).toBeGreaterThanOrEqual(200);
           }
         }),

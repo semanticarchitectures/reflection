@@ -115,7 +115,7 @@ describe('Pipeline Orchestrator', () => {
       for (const file of result.session.generatedFiles) {
         expect(file.filename).toMatch(/\.md$/);
         expect(file.title.length).toBeGreaterThan(0);
-        expect(file.content.startsWith('# ')).toBe(true);
+        expect(file.content).toContain('\n# ');
       }
     });
   });
@@ -244,7 +244,7 @@ describe('Pipeline Orchestrator', () => {
         // Each generated file should have valid content
         for (const file of result.session.generatedFiles) {
           expect(file.filename).toMatch(/\.md$/);
-          expect(file.content.startsWith('# ')).toBe(true);
+          expect(file.content).toContain('\n# ');
           expect(file.title.length).toBeGreaterThan(0);
         }
       });

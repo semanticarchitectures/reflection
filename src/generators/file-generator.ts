@@ -47,13 +47,15 @@ export async function generateFile(
         });
 
         if (response.content.length >= MIN_LLM_BODY_LENGTH) {
-          const content = formatContent(title, response.content, crossReferences);
+          const rawContent = formatContent(title, response.content, crossReferences);
+          const content = addFrontmatter(rawContent, 'llm', config.model);
           return {
             filename: planned.filename,
             title,
             content,
             crossReferences,
             generationMethod: 'llm',
+            modelUsed: config.model,
           };
         }
         // Response too short — fall through to heuristic
@@ -66,7 +68,8 @@ export async function generateFile(
 
   // Heuristic fallback
   const body = generateBody(planned, scope, crossReferences);
-  const content = formatContent(title, body, crossReferences);
+  const rawContent = formatContent(title, body, crossReferences);
+  const content = addFrontmatter(rawContent, 'heuristic');
 
   return {
     filename: planned.filename,
@@ -286,6 +289,21 @@ function ensureMinimumLength(body: string, planned: PlannedFile, scope: TopicSco
   const extended = body + '\n\n' + additionalContent;
 
   return extended;
+}
+
+/**
+ * Adds YAML frontmatter to the markdown content indicating the generation method.
+ * When LLM is used, includes the model name.
+ */
+function addFrontmatter(content: string, method: 'llm' | 'heuristic', model?: string): string {
+  const lines: string[] = ['---'];
+  lines.push(`generated_by: ${method}`);
+  if (method === 'llm' && model) {
+    lines.push(`model: ${model}`);
+  }
+  lines.push('---');
+  lines.push('');
+  return lines.join('\n') + content;
 }
 
 /**
