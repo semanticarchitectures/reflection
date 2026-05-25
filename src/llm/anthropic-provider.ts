@@ -137,12 +137,20 @@ export class AnthropicProvider implements LLMProvider {
           throw new Error('Rate limit exceeded. Please retry later.');
         }
         if (status === 500 || status === 503) {
-          throw new Error('LLM service is temporarily unavailable');
+          throw new Error(`LLM service is temporarily unavailable (HTTP ${status})`);
         }
+        if (status === 400) {
+          // Include the error message for 400s — these are usually informative
+          // (e.g., "messages: first message must use the user role")
+          const detail = error.message || 'Bad request';
+          throw new Error(`LLM request rejected: ${detail}`);
+        }
+        throw new Error(`LLM request failed (HTTP ${status}): ${error.message || 'Unknown error'}`);
       }
 
-      // Generic wrapping for any other error
-      throw new Error('LLM request failed');
+      // Generic wrapping — include the error message for debugging
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`LLM request failed: ${message}`);
     }
   }
 }

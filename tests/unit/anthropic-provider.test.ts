@@ -507,23 +507,23 @@ describe('AnthropicProvider', () => {
       );
     });
 
-    it('wraps unknown errors into generic message', async () => {
+    it('wraps unknown errors with the error message for debugging', async () => {
       const provider = await createProvider();
       const createMock = await getClientMock(provider);
-      createMock.mockRejectedValue(new Error('Some internal SDK error with stack trace'));
+      createMock.mockRejectedValue(new Error('Some internal SDK error'));
 
       const request: CompletionRequest = {
         messages: [{ role: 'user', content: 'Hello' }],
         model: 'claude-sonnet-4-6',
       };
 
-      await expect(provider.complete(request)).rejects.toThrow('LLM request failed');
+      await expect(provider.complete(request)).rejects.toThrow('LLM request failed: Some internal SDK error');
     });
 
-    it('does not expose provider-specific error details', async () => {
+    it('includes error message but prefixes with LLM request failed', async () => {
       const provider = await createProvider();
       const createMock = await getClientMock(provider);
-      const detailedError = new Error('Anthropic API error: invalid_request_error at /v1/messages');
+      const detailedError = new Error('invalid_request_error: messages must alternate');
       createMock.mockRejectedValue(detailedError);
 
       const request: CompletionRequest = {
@@ -534,9 +534,8 @@ describe('AnthropicProvider', () => {
       try {
         await provider.complete(request);
       } catch (error) {
-        expect((error as Error).message).toBe('LLM request failed');
-        expect((error as Error).message).not.toContain('Anthropic');
-        expect((error as Error).message).not.toContain('/v1/messages');
+        expect((error as Error).message).toContain('LLM request failed');
+        expect((error as Error).message).toContain('messages must alternate');
       }
     });
   });
