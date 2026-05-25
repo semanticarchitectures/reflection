@@ -52,7 +52,7 @@ export class AnthropicProvider implements LLMProvider {
     if (!apiKey) {
       throw new Error('ANTHROPIC_API_KEY environment variable is not configured');
     }
-    this.client = new Anthropic({ apiKey, timeout: 30_000 });
+    this.client = new Anthropic({ apiKey, timeout: 120_000 });
     this.retryHandler = retryHandler ?? new RetryHandler();
   }
 

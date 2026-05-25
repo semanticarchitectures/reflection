@@ -24,7 +24,7 @@ export type DelayFn = (ms: number) => Promise<void>;
 const DEFAULT_OPTIONS: RetryOptions = {
   maxAttempts: 3,
   baseDelayMs: 1000,
-  timeoutMs: 30000,
+  timeoutMs: 120000,
 };
 
 /**
