@@ -43,9 +43,10 @@ export class ProgressReporter {
    * Report progress after a file is completed.
    * Requirement 5.2: Report the name of the completed file and the count of completed/total.
    */
-  onFileComplete(filename: string, completed: number, total: number): void {
+  onFileComplete(filename: string, completed: number, total: number, method?: string): void {
+    const methodTag = method ? ` [${method}]` : '';
     this.callback(
-      `Generated: ${filename} (${completed}/${total})`
+      `Generated: ${filename}${methodTag} (${completed}/${total})`
     );
   }
 

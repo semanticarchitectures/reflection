@@ -129,7 +129,20 @@ async function main(): Promise<void> {
   console.log(`\nTopic: ${args.topic}`);
   console.log(`Use case: ${args.useCase}`);
   console.log(`Output: ${args.outputDir}`);
-  console.log(`Clarification: ${args.skipClarification ? 'skipped' : 'interactive'}\n`);
+  console.log(`Clarification: ${args.skipClarification ? 'skipped' : 'interactive'}`);
+
+  // Display LLM configuration
+  const llmProvider = process.env.LLM_PROVIDER?.trim();
+  if (llmProvider) {
+    const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+    const model = process.env.LLM_MODEL_DEFAULT?.trim() || 'claude-sonnet-4-20250514';
+    console.log(`LLM Provider: ${llmProvider}`);
+    console.log(`LLM Model: ${model}`);
+    console.log(`API Key: ${apiKey ? apiKey.slice(0, 10) + '...' + apiKey.slice(-4) : '(not set)'}`);
+  } else {
+    console.log(`LLM Provider: none (using heuristics)`);
+  }
+  console.log('');
 
   const result = await runPipeline({
     topic: args.topic,
@@ -148,6 +161,17 @@ async function main(): Promise<void> {
   }
 
   console.log(`\nDone! ${result.session.generatedFiles.length} files written to ${args.outputDir}`);
+
+  // Show generation method summary
+  const llmFiles = result.session.generatedFiles.filter(f => f.generationMethod === 'llm');
+  const heuristicFiles = result.session.generatedFiles.filter(f => f.generationMethod !== 'llm');
+  if (llmFiles.length > 0) {
+    const model = llmFiles[0]?.modelUsed ?? 'unknown';
+    console.log(`  LLM-generated: ${llmFiles.length} files (model: ${model})`);
+  }
+  if (heuristicFiles.length > 0) {
+    console.log(`  Heuristic-generated: ${heuristicFiles.length} files`);
+  }
 }
 
 main().catch((err) => {

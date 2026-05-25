@@ -59,10 +59,12 @@ export async function generateFile(
           };
         }
         // Response too short — fall through to heuristic
+        console.warn(`[FileGenerator] LLM response too short (${response.content.length} chars < 200), falling back to heuristic for ${planned.filename}`);
       }
     } catch (_error) {
       // Provider error or timeout — fall through to heuristic
-      // Error is reported by the caller through ProgressReporter
+      const msg = _error instanceof Error ? _error.message : String(_error);
+      console.warn(`[FileGenerator] LLM error for ${planned.filename}: ${msg}, falling back to heuristic`);
     }
   }
 

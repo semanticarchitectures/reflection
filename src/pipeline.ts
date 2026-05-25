@@ -154,7 +154,8 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRes
       progressReporter?.onFileComplete(
         generated.filename,
         completedCount,
-        plan.estimatedTotal
+        plan.estimatedTotal,
+        generated.generationMethod ?? 'heuristic'
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -306,14 +307,21 @@ function initializeProviderRegistry(): ProviderRegistry {
   const registry = new ProviderRegistry();
 
   const providerName = process.env.LLM_PROVIDER?.trim();
+  if (!providerName) {
+    return registry;
+  }
+
   if (providerName === 'anthropic') {
     try {
       const provider = new AnthropicProvider();
       registry.register(provider);
+      console.log(`[pipeline] LLM provider initialized: anthropic`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[pipeline] Failed to initialize Anthropic provider: ${message}. Falling back to heuristic mode.`);
     }
+  } else {
+    console.warn(`[pipeline] Unknown LLM_PROVIDER "${providerName}". Supported: anthropic. Falling back to heuristic mode.`);
   }
 
   return registry;
